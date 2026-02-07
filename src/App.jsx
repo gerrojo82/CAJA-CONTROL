@@ -253,7 +253,7 @@ export default function CajaControl() {
   const curStoreName = curStore === "all" ? "Todas" : STORES.find(s => s.id === curStore)?.name;
 
   return (
-    <div style={{ ...S.app, height: '100vh', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ ...S.app, minHeight: '100svh', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* Header */}
