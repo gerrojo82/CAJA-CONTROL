@@ -24,6 +24,7 @@ import { STORES, REGISTERS_PER_STORE, SHIFTS, DEFAULT_PIN, regLabel } from "./ut
 import { uid, todayStr, fmt, fmtDate, fmtTime } from "./utils/formatters";
 import { calcCoinTotal, calcBillTotal, calcCashFlows, calcExpectedCash, getClosingAvailable } from "./utils/helpers";
 import { storage } from "./utils/storage";
+import { supabase, hasSupabase } from "./utils/supabase";
 import { S } from "./styles/styles";
 
 // ── STATE INIT ───────────────────────────────────────────────────
@@ -34,6 +35,175 @@ const initState = () => ({
   closings: [],
   transfers: [],
   auditLog: [],
+});
+
+const fromDbShift = (r) => ({
+  id: r.id,
+  storeId: r.store_id,
+  registerId: r.register_id,
+  shift: r.shift,
+  date: r.date,
+  openedBy: r.opened_by,
+  openedAt: r.opened_at,
+  openingAmount: r.opening_amount,
+  openingBills: r.opening_bills || {},
+  openingCoins: r.opening_coins || {},
+  status: r.status,
+  closedBy: r.closed_by || null,
+  closedAt: r.closed_at || null,
+  closingAmount: r.closing_amount || null,
+  difference: r.difference || null,
+  montoRetirado: r.monto_retirado || null,
+});
+
+const toDbShift = (s) => ({
+  id: s.id,
+  store_id: s.storeId,
+  register_id: s.registerId,
+  shift: s.shift,
+  date: s.date,
+  opened_by: s.openedBy,
+  opened_at: s.openedAt,
+  opening_amount: s.openingAmount,
+  opening_bills: s.openingBills,
+  opening_coins: s.openingCoins,
+  status: s.status,
+  closed_by: s.closedBy || null,
+  closed_at: s.closedAt || null,
+  closing_amount: s.closingAmount || null,
+  difference: s.difference || null,
+  monto_retirado: s.montoRetirado || null,
+});
+
+const fromDbClosing = (r) => ({
+  id: r.id,
+  storeId: r.store_id,
+  registerId: r.register_id,
+  shift: r.shift,
+  date: r.date,
+  closedBy: r.closed_by,
+  closedAt: r.closed_at,
+  openingAmount: r.opening_amount,
+  ingresosEfectivo: r.ingresos_efectivo,
+  egresosEfectivo: r.egresos_efectivo,
+  ingresosTotal: r.ingresos_total,
+  egresosTotal: r.egresos_total,
+  expectedCash: r.expected_cash,
+  countedCash: r.counted_cash,
+  difference: r.difference,
+  montoRetirado: r.monto_retirado,
+  transferredOut: r.transferred_out || 0,
+  adminWithdrawn: r.admin_withdrawn || 0,
+  adminWithdrawals: r.admin_withdrawals || [],
+  closingBills: r.closing_bills || {},
+  closingCoins: r.closing_coins || {},
+  movements: [],
+});
+
+const toDbClosing = (c) => ({
+  id: c.id,
+  store_id: c.storeId,
+  register_id: c.registerId,
+  shift: c.shift,
+  date: c.date,
+  closed_by: c.closedBy,
+  closed_at: c.closedAt,
+  opening_amount: c.openingAmount,
+  ingresos_efectivo: c.ingresosEfectivo,
+  egresos_efectivo: c.egresosEfectivo,
+  ingresos_total: c.ingresosTotal,
+  egresos_total: c.egresosTotal,
+  expected_cash: c.expectedCash,
+  counted_cash: c.countedCash,
+  difference: c.difference,
+  monto_retirado: c.montoRetirado,
+  transferred_out: c.transferredOut || 0,
+  admin_withdrawn: c.adminWithdrawn || 0,
+  admin_withdrawals: c.adminWithdrawals || [],
+  closing_bills: c.closingBills,
+  closing_coins: c.closingCoins,
+});
+
+const fromDbMovement = (r) => ({
+  id: r.id,
+  type: r.type,
+  amount: r.amount,
+  description: r.description,
+  method: r.method,
+  category: r.category || "",
+  storeId: r.store_id,
+  registerId: r.register_id,
+  shift: r.shift,
+  date: r.date,
+  ts: r.ts,
+  registeredBy: r.registered_by,
+  isTransfer: r.is_transfer || false,
+  fromClosingId: r.from_closing_id || null,
+});
+
+const toDbMovement = (m) => ({
+  id: m.id,
+  type: m.type,
+  amount: m.amount,
+  description: m.description,
+  method: m.method,
+  category: m.category || null,
+  store_id: m.storeId,
+  register_id: m.registerId,
+  shift: m.shift,
+  date: m.date,
+  ts: m.ts,
+  registered_by: m.registeredBy,
+  is_transfer: Boolean(m.isTransfer),
+  from_closing_id: m.fromClosingId || null,
+});
+
+const fromDbTransfer = (r) => ({
+  id: r.id,
+  fromClosingId: r.from_closing_id || null,
+  fromStore: r.from_store,
+  fromRegister: r.from_register,
+  fromShift: r.from_shift,
+  fromDate: r.from_date,
+  toStore: r.to_store,
+  toRegister: r.to_register,
+  toShift: r.to_shift,
+  toDate: r.to_date,
+  amount: r.amount,
+  executedBy: r.executed_by,
+  ts: r.ts,
+});
+
+const toDbTransfer = (t) => ({
+  id: t.id,
+  from_closing_id: t.fromClosingId || null,
+  from_store: t.fromStore,
+  from_register: t.fromRegister,
+  from_shift: t.fromShift,
+  from_date: t.fromDate,
+  to_store: t.toStore,
+  to_register: t.toRegister,
+  to_shift: t.toShift,
+  to_date: t.toDate,
+  amount: t.amount,
+  executed_by: t.executedBy,
+  ts: t.ts,
+});
+
+const fromDbAudit = (r) => ({
+  id: r.id,
+  user: r.user_name,
+  action: r.action,
+  detail: r.detail,
+  ts: r.ts,
+});
+
+const toDbAudit = (e) => ({
+  id: e.id,
+  user_name: e.user,
+  action: e.action,
+  detail: e.detail,
+  ts: e.ts,
 });
 
 
@@ -58,11 +228,48 @@ export default function CajaControl() {
   const [selShift, setSelShift] = useState(null);
   const [selName, setSelName] = useState("");
 
+  const shiftKey = (storeId, regId, date, shift) => `${storeId}_${regId}_${date}_${shift}`;
+
   useEffect(() => {
     (async () => {
       try {
-        const res = await storage.get("cajacontrol_v5");
-        if (res?.value) setState(JSON.parse(res.value));
+        if (hasSupabase) {
+          const pinRes = await storage.get("admin_pin");
+          const adminPin = pinRes?.value || DEFAULT_PIN;
+
+          const [
+            shiftsRes,
+            closingsRes,
+            movesRes,
+            transfersRes,
+            auditRes,
+          ] = await Promise.all([
+            supabase.from("shifts").select("*").order("opened_at", { ascending: true }),
+            supabase.from("closings").select("*").order("closed_at", { ascending: true }),
+            supabase.from("movements").select("*").order("ts", { ascending: true }),
+            supabase.from("transfers").select("*").order("ts", { ascending: true }),
+            supabase.from("audit_log").select("*").order("ts", { ascending: true }),
+          ]);
+
+          const shiftsMap = {};
+          (shiftsRes.data || []).forEach(r => {
+            const s = fromDbShift(r);
+            shiftsMap[shiftKey(s.storeId, s.registerId, s.date, s.shift)] = s;
+          });
+
+          setState({
+            ...initState(),
+            adminPin,
+            shifts: shiftsMap,
+            closings: (closingsRes.data || []).map(fromDbClosing),
+            movements: (movesRes.data || []).map(fromDbMovement),
+            transfers: (transfersRes.data || []).map(fromDbTransfer),
+            auditLog: (auditRes.data || []).map(fromDbAudit),
+          });
+        } else {
+          const res = await storage.get("cajacontrol_v5");
+          if (res?.value) setState(JSON.parse(res.value));
+        }
       } catch { }
       setLoaded(true);
     })();
@@ -70,19 +277,55 @@ export default function CajaControl() {
 
   const save = useCallback(async (ns) => {
     setState(ns);
-    try { await storage.set("cajacontrol_v5", JSON.stringify(ns)); } catch { }
-  }, []);
+    if (!hasSupabase) {
+      try { await storage.set("cajacontrol_v5", JSON.stringify(ns)); } catch { }
+    } else if (ns.adminPin !== state.adminPin) {
+      try { await storage.set("admin_pin", ns.adminPin); } catch { }
+    }
+  }, [state.adminPin]);
 
-  const addLog = useCallback((action, detail) => {
-    const entry = { id: uid(), user: session?.name || "sistema", action, detail, ts: new Date().toISOString() };
-    return [...state.auditLog, entry];
-  }, [session, state]);
+  const addLog = useCallback((action, detail) => ({
+    id: uid(),
+    user: session?.name || "sistema",
+    action,
+    detail,
+    ts: new Date().toISOString(),
+  }), [session]);
+
+  const upsertShift = async (shift) => {
+    if (!hasSupabase) return;
+    await supabase.from("shifts").upsert(toDbShift(shift));
+  };
+
+  const insertClosing = async (closing) => {
+    if (!hasSupabase) return;
+    await supabase.from("closings").insert(toDbClosing(closing));
+  };
+
+  const upsertClosing = async (closing) => {
+    if (!hasSupabase) return;
+    await supabase.from("closings").upsert(toDbClosing(closing));
+  };
+
+  const insertMovement = async (movement) => {
+    if (!hasSupabase) return;
+    await supabase.from("movements").insert(toDbMovement(movement));
+  };
+
+  const insertTransfer = async (transfer) => {
+    if (!hasSupabase) return;
+    await supabase.from("transfers").insert(toDbTransfer(transfer));
+  };
+
+  const insertAudit = async (entry) => {
+    if (!hasSupabase) return;
+    await supabase.from("audit_log").insert(toDbAudit(entry));
+  };
 
   const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
   const openModal = (type, data) => { setModal(type); setModalData(data || null); };
   const closeModal = () => { setModal(null); setModalData(null); };
 
-  const shiftKey = (storeId, regId, date, shift) => `${storeId}_${regId}_${date}_${shift}`;
   const getShift = (storeId, regId, date, shift) => state.shifts[shiftKey(storeId, regId, date, shift)];
   const getActiveShifts = (storeId, regId, date) => SHIFTS.map(s => ({ shift: s, data: getShift(storeId, regId, date, s) })).filter(x => x.data);
   const getShiftMovements = (storeId, regId, date, shift) => state.movements.filter(m => m.storeId === storeId && m.registerId === regId && m.date === date && m.shift === shift);
@@ -97,25 +340,29 @@ export default function CajaControl() {
   };
 
   // ── OPERATIONS ────────────────────────────────────────────────
-  const openShift = (billCount, coinCount) => {
+  const openShift = async (billCount, coinCount) => {
     const { storeId, registerId, shift, name } = modalData;
     const total = calcBillTotal(billCount) + calcCoinTotal(coinCount);
     const key = shiftKey(storeId, registerId, todayStr(), shift);
     const ns = {
+      id: uid(),
       storeId, registerId, shift, date: todayStr(), openedBy: name,
       openedAt: new Date().toISOString(), openingAmount: total,
       openingBills: { ...billCount }, openingCoins: { ...coinCount },
       status: "open",
     };
-    const al = addLog("APERTURA", `${regLabel(storeId, registerId)} ${shift} con ${fmt(total)} por ${name}`);
-    save({ ...state, shifts: { ...state.shifts, [key]: ns }, auditLog: al });
+    const entry = addLog("APERTURA", `${regLabel(storeId, registerId)} ${shift} con ${fmt(total)} por ${name}`);
+    const auditLog = [...state.auditLog, entry];
+    await upsertShift(ns);
+    await insertAudit(entry);
+    save({ ...state, shifts: { ...state.shifts, [key]: ns }, auditLog });
     closeModal();
     setSession({ storeId, registerId, shift, name, role: "cajero" });
     setScreen("cajero");
     showToast(`Turno abierto con ${fmt(total)}`);
   };
 
-  const closeShift = (billCount, coinCount) => {
+  const closeShift = async (billCount, coinCount) => {
     const { storeId, registerId, shift } = modalData;
     const key = shiftKey(storeId, registerId, todayStr(), shift);
     const sd = state.shifts[key];
@@ -139,16 +386,20 @@ export default function CajaControl() {
       closingBills: { ...billCount }, closingCoins: { ...coinCount }, movements: moves,
     };
 
-    const updatedShift = { ...sd, status: "closed", closedAt: closing.closedAt, closedBy: closing.closedBy, closingAmount: countedTotal, difference: diff, montoRetirado };
-    const al = addLog("CIERRE", `${regLabel(storeId, registerId)} ${shift}: esperado ${fmt(expectedCash)} contado ${fmt(countedTotal)} dif ${fmt(diff)}`);
+    const updatedShift = { ...sd, id: sd.id || uid(), status: "closed", closedAt: closing.closedAt, closedBy: closing.closedBy, closingAmount: countedTotal, difference: diff, montoRetirado };
+    const entry = addLog("CIERRE", `${regLabel(storeId, registerId)} ${shift}: esperado ${fmt(expectedCash)} contado ${fmt(countedTotal)} dif ${fmt(diff)}`);
+    const auditLog = [...state.auditLog, entry];
 
-    save({ ...state, shifts: { ...state.shifts, [key]: updatedShift }, closings: [...state.closings, closing], auditLog: al });
+    await upsertShift(updatedShift);
+    await insertClosing(closing);
+    await insertAudit(entry);
+    save({ ...state, shifts: { ...state.shifts, [key]: updatedShift }, closings: [...state.closings, closing], auditLog });
     closeModal();
     if (!session || session?.role !== "admin") logout();
     showToast(diff === 0 ? `✓ Cierre perfecto • Retirado: ${fmt(montoRetirado)}` : `Dif: ${fmt(diff)} • Retirado: ${fmt(montoRetirado)}`, diff === 0 ? "success" : "error");
   };
 
-  const transferFunds = (fromClosingId, toStoreId, toRegId, toShift, amount, description) => {
+  const transferFunds = async (fromClosingId, toStoreId, toRegId, toShift, amount, description) => {
     const fc = state.closings.find(c => c.id === fromClosingId);
     if (!fc) return;
     if (fc.storeId !== toStoreId) { showToast("Fondos solo dentro de la misma tienda", "error"); return; }
@@ -166,13 +417,21 @@ export default function CajaControl() {
       id: uid(), fromClosingId, fromStore: fc.storeId, fromRegister: fc.registerId, fromShift: fc.shift, fromDate: fc.date,
       toStore: toStoreId, toRegister: toRegId, toShift, toDate: todayStr(), amount, executedBy: session?.name || "admin", ts: new Date().toISOString(),
     };
-    const al = addLog("TRANSFERENCIA", `${fmt(amount)} de ${regLabel(fc.storeId, fc.registerId)} → ${regLabel(toStoreId, toRegId)}`);
-    save({ ...state, closings: updClosings, movements: [...state.movements, movement], transfers: [...(state.transfers || []), transfer], auditLog: al });
+    const entry = addLog("TRANSFERENCIA", `${fmt(amount)} de ${regLabel(fc.storeId, fc.registerId)} → ${regLabel(toStoreId, toRegId)}`);
+    const auditLog = [...state.auditLog, entry];
+    const updatedClosing = updClosings.find(c => c.id === fromClosingId);
+
+    if (updatedClosing) await upsertClosing(updatedClosing);
+    await insertMovement(movement);
+    await insertTransfer(transfer);
+    await insertAudit(entry);
+
+    save({ ...state, closings: updClosings, movements: [...state.movements, movement], transfers: [...(state.transfers || []), transfer], auditLog });
     closeModal();
     showToast(`${fmt(amount)} transferidos`);
   };
 
-  const withdrawFromClosing = (closingId, amount, note) => {
+  const withdrawFromClosing = async (closingId, amount, note) => {
     const fc = state.closings.find(c => c.id === closingId);
     if (!fc) return;
     const available = getClosingAvailable(fc);
@@ -190,22 +449,41 @@ export default function CajaControl() {
     } : c);
 
     const detail = `${fmt(amount)} de ${regLabel(fc.storeId, fc.registerId)} (${fc.shift})${note ? ` • ${note}` : ""}`;
-    const al = addLog("RETIRO ADMIN", detail);
+    const entry = addLog("RETIRO ADMIN", detail);
+    const auditLog = [...state.auditLog, entry];
+    const updatedClosing = updClosings.find(c => c.id === closingId);
+    if (updatedClosing) await upsertClosing(updatedClosing);
+    await insertAudit(entry);
 
-    save({ ...state, closings: updClosings, auditLog: al });
+    save({ ...state, closings: updClosings, auditLog });
     closeModal();
     showToast(`Retiro: ${fmt(amount)}`);
   };
 
-  const addMovement = (mov) => {
+  const addMovement = async (mov) => {
     const m = { ...mov, id: uid(), date: todayStr(), ts: new Date().toISOString(), registeredBy: session?.name || "admin" };
-    const al = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
-    save({ ...state, movements: [...state.movements, m], auditLog: al });
+    const entry = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
+    const auditLog = [...state.auditLog, entry];
+    await insertMovement(m);
+    await insertAudit(entry);
+    save({ ...state, movements: [...state.movements, m], auditLog });
     closeModal();
     showToast(`${mov.type === "ingreso" ? "Ingreso" : "Egreso"} registrado`);
   };
 
-  const resetData = () => { if (confirm("¿Borrar TODOS los datos?")) { save(initState()); showToast("Datos reiniciados"); } };
+  const resetData = async () => {
+    if (!confirm("¿Borrar TODOS los datos?")) return;
+    if (hasSupabase) {
+      await supabase.from("movements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("transfers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("closings").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("shifts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("audit_log").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      try { await storage.set("admin_pin", DEFAULT_PIN); } catch { }
+    }
+    save(initState());
+    showToast("Datos reiniciados");
+  };
 
   const checkPin = (pin) => {
     if (pin === (state.adminPin || DEFAULT_PIN)) {
