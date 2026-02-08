@@ -23,6 +23,7 @@ import AdminWithdrawModal from "./modals/AdminWithdrawModal";
 import { STORES, REGISTERS_PER_STORE, SHIFTS, DEFAULT_PIN, regLabel } from "./utils/constants";
 import { uid, todayStr, fmt, fmtDate, fmtTime } from "./utils/formatters";
 import { calcCoinTotal, calcBillTotal, calcCashFlows, calcExpectedCash, getClosingAvailable } from "./utils/helpers";
+import { storage } from "./utils/storage";
 import { S } from "./styles/styles";
 
 // ── STATE INIT ───────────────────────────────────────────────────
@@ -35,25 +36,6 @@ const initState = () => ({
   auditLog: [],
 });
 
-const storage = {
-  async get(key) {
-    if (window?.storage?.get) {
-      try { return await window.storage.get(key); } catch { }
-    }
-    try {
-      const value = localStorage.getItem(key);
-      return value ? { value } : null;
-    } catch {
-      return null;
-    }
-  },
-  async set(key, value) {
-    if (window?.storage?.set) {
-      try { await window.storage.set(key, value); return; } catch { }
-    }
-    try { localStorage.setItem(key, value); } catch { }
-  },
-};
 
 // ── MAIN APP ─────────────────────────────────────────────────────
 export default function CajaControl() {
