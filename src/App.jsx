@@ -1,6 +1,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+// Auth
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import LoginPage from "./screens/LoginPage";
+
 // Components
 import PickStore from "./screens/onboarding/PickStore";
 import PickRegister from "./screens/onboarding/PickRegister";
@@ -208,7 +212,8 @@ const toDbAudit = (e) => ({
 
 
 // ── MAIN APP ─────────────────────────────────────────────────────
-export default function CajaControl() {
+function App() {
+  const { signOut } = useAuth();
   const [state, setState] = useState(initState);
   const [session, setSession] = useState(null); // { storeId, registerId, shift, name, role }
   const [screen, setScreen] = useState("pickStore"); // pickStore, pickRegister, pickShift, enterName, cajero, admin
@@ -382,7 +387,8 @@ export default function CajaControl() {
   const getRegisterMovements = (storeId, regId, date) => state.movements.filter(m => m.storeId === storeId && m.registerId === regId && m.date === date);
 
   // ── LOGOUT ─────────────────────────────────────────────────────
-  const logout = () => {
+  const logout = async () => {
+    await signOut(); // Cerrar sesión de Supabase
     setSession(null);
     setScreen("pickStore");
     setSelStore(null); setSelReg(null); setSelShift(null); setSelName("");
@@ -693,5 +699,42 @@ export default function CajaControl() {
         />
       )}
     </div>
+  );
+}
+
+// Componente principal con autenticación
+function AppWithAuth() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f8fafc"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>💰</div>
+          <div style={{ fontSize: 16, color: "#64748b" }}>Cargando...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  return <App />;
+}
+
+// Exportar con AuthProvider
+export default function AppRoot() {
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
   );
 }
