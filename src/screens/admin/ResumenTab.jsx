@@ -1,4 +1,5 @@
 import StatCard from "../../components/StatCard";
+import SimpleBarChart from "../../components/SimpleBarChart";
 import { S } from "../../styles/styles";
 import { STORES, REGISTERS_PER_STORE, regLabel } from "../../utils/constants";
 import { fmt, fmtDate } from "../../utils/formatters";
@@ -111,6 +112,23 @@ export default function ResumenTab({ dayCls, state, filterDate, storeFilter, get
                             </div>
                         </div>
                     </div>
+
+                    {/* Gráfico de ventas por caja */}
+                    {flat.length > 0 && (
+                        <>
+                            <div style={{ ...S.sectionTitle, marginTop: 20 }}>📊 Ventas por Caja</div>
+                            <div style={S.card}>
+                                <SimpleBarChart
+                                    data={flat.map(r => ({
+                                        label: regLabel(r.reg.storeId || r.cls[0]?.storeId, r.reg.id),
+                                        value: r.totalVentas
+                                    }))}
+                                    height={200}
+                                    color="#3b82f6"
+                                />
+                            </div>
+                        </>
+                    )}
                 </>
             )}
 

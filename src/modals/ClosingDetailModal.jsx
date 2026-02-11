@@ -1,6 +1,7 @@
 import Modal from "../components/Modal";
 import { fmt, fmtTime, regLabel } from "../utils/formatters";
 import { getClosingAvailable } from "../utils/helpers";
+import { printClosing } from "../utils/printClosing";
 import { S } from "../styles/styles";
 
 export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
@@ -23,10 +24,22 @@ export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Disponible</span><br /><strong style={{ color: available > 0 ? "#16a34a" : "#64748b" }}>{fmt(available)}</strong></div>
             </div>
 
-            <button style={{ ...S.btnSubmit, background: available > 0 ? "#0f172a" : "#94a3b8" }} onClick={onWithdraw} disabled={available <= 0}>
-                Retirar fondos
-            </button>
-            {available <= 0 && <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Sin disponible para retirar</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button
+                    style={{ flex: 1, padding: 13, borderRadius: 10, background: available > 0 ? "#0f172a" : "#94a3b8", color: "#fff", border: "none", fontWeight: 800, fontSize: 13, cursor: available > 0 ? "pointer" : "not-allowed" }}
+                    onClick={onWithdraw}
+                    disabled={available <= 0}
+                >
+                    Retirar fondos
+                </button>
+                <button
+                    style={{ flex: 1, padding: 13, borderRadius: 10, background: "#7c3aed", color: "#fff", border: "none", fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                    onClick={() => printClosing(c)}
+                >
+                    🖨️ Imprimir
+                </button>
+            </div>
+            {available <= 0 && <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8", textAlign: "center" }}>Sin disponible para retirar</div>}
 
             {c.adminWithdrawals?.length > 0 && <>
                 <div style={{ fontSize: 14, fontWeight: 800, margin: "14px 0 6px" }}>Retiros admin ({c.adminWithdrawals.length})</div>

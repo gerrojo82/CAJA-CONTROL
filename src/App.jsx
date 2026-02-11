@@ -420,7 +420,7 @@ export default function CajaControl() {
     }
   };
 
-  const closeShift = async (billCount, coinCount) => {
+  const closeShift = async (billCount, coinCount, notes = "") => {
     try {
       const { storeId, registerId, shift } = modalData;
       const key = shiftKey(storeId, registerId, todayStr(), shift);
@@ -451,6 +451,7 @@ export default function CajaControl() {
         expectedCash, countedCash: countedTotal, difference: diff, montoRetirado,
         transferredOut: 0, adminWithdrawn: 0, adminWithdrawals: [],
         closingBills: { ...billCount }, closingCoins: { ...coinCount }, movements: moves,
+        notes: notes || null,
       };
 
       const updatedShift = { ...sd, id: sd.id || uid(), status: "closed", closedAt: closing.closedAt, closedBy: closing.closedBy, closingAmount: countedTotal, difference: diff, montoRetirado };
@@ -588,6 +589,10 @@ export default function CajaControl() {
   const curStore = isAdmin ? adminStore : session?.storeId;
   const curStoreName = curStore === "all" ? "Todas" : STORES.find(s => s.id === curStore)?.name;
 
+  // Indicador de turno activo (#3)
+  const currentShift = !isAdmin && session ? getShift(session.storeId, session.registerId, todayStr(), session.shift) : null;
+  const shiftStatus = currentShift?.status === "open" ? "open" : "closed";
+
   return (
     <div style={{ ...S.app, minHeight: '100svh', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -604,6 +609,24 @@ export default function CajaControl() {
           </div>
         </div>
         <div style={S.hRight}>
+          {/* Indicador de estado del turno (#3) */}
+          {!isAdmin && (
+            <div style={{
+              padding: '6px 12px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: shiftStatus === 'open' ? '#dcfce7' : '#fee2e2',
+              color: shiftStatus === 'open' ? '#166534' : '#991b1b',
+              border: `1px solid ${shiftStatus === 'open' ? '#bbf7d0' : '#fecaca'}`
+            }}>
+              <span style={{ fontSize: 10 }}>{shiftStatus === 'open' ? '🟢' : '🔴'}</span>
+              {shiftStatus === 'open' ? 'Turno Abierto' : 'Turno Cerrado'}
+            </div>
+          )}
           <div style={S.dateBadge}>{fmtDate(new Date())}</div>
           <button style={S.logoutBtn} onClick={logout}>Salir</button>
         </div>

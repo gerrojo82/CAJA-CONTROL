@@ -7,9 +7,12 @@ export default function CajeroPanel({ session, state, getShift, getShiftMovement
     const { storeId, registerId, shift, name } = session;
     const sd = getShift(storeId, registerId, todayStr(), shift);
     const moves = sd ? getShiftMovements(storeId, registerId, todayStr(), shift) : [];
-    const { ingEfvo, egrEfvo } = calcCashFlows(moves);
+    const { ingEfvo, egrEfvo, ingTotal, egrTotal } = calcCashFlows(moves);
     const expected = sd ? sd.openingAmount + ingEfvo - egrEfvo : 0;
     const totalAvail = state.closings.filter(c => c.storeId === storeId).reduce((s, c) => s + getClosingAvailable(c), 0);
+
+    // Total del día (#6)
+    const netTotal = ingTotal - egrTotal;
 
     if (!sd) {
         return (
@@ -37,6 +40,27 @@ export default function CajeroPanel({ session, state, getShift, getShiftMovement
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                     <button style={S.btnSmR} onClick={() => openModal("closeShift", { storeId, registerId, shift })}>Cerrar turno/caja</button>
                     <span style={{ fontSize: 10, color: "#94a3b8" }}>Contar efectivo y confirmar</span>
+                </div>
+            </div>
+
+            {/* Total del día (#6) */}
+            <div style={{ padding: 14, borderRadius: 12, background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", border: "1px solid #bae6fd", marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#0c4a6e", marginBottom: 6 }}>📊 Total del día</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 12 }}>
+                    <div>
+                        <div style={{ color: "#64748b", fontSize: 10 }}>Ventas</div>
+                        <div style={{ fontWeight: 800, color: "#16a34a", fontFamily: "'JetBrains Mono', monospace" }}>+{fmt(ingTotal)}</div>
+                    </div>
+                    <div>
+                        <div style={{ color: "#64748b", fontSize: 10 }}>Pagos</div>
+                        <div style={{ fontWeight: 800, color: "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>-{fmt(egrTotal)}</div>
+                    </div>
+                    <div>
+                        <div style={{ color: "#64748b", fontSize: 10 }}>Neto</div>
+                        <div style={{ fontWeight: 800, color: netTotal >= 0 ? "#0369a1" : "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>
+                            {netTotal >= 0 ? "+" : ""}{fmt(netTotal)}
+                        </div>
+                    </div>
                 </div>
             </div>
 
