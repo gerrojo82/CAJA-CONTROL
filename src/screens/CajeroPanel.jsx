@@ -1,5 +1,5 @@
 import { STORES, REGISTERS_PER_STORE } from "../utils/constants";
-import { fmt, fmtTime, todayStr } from "../utils/formatters";
+import { fmt, fmtTime, todayStr, fmtDate } from "../utils/formatters";
 import { calcCashFlows, getClosingAvailable } from "../utils/helpers";
 import { S } from "../styles/styles";
 
@@ -14,12 +14,40 @@ export default function CajeroPanel({ session, state, getShift, getShiftMovement
     // Total del día (#6)
     const netTotal = ingTotal - egrTotal;
 
+    // Información de sucursal y caja
+    const store = STORES.find(s => s.id === storeId);
+    const register = REGISTERS_PER_STORE.find(r => r.id === registerId);
+    const today = todayStr();
+
     if (!sd) {
         return (
             <div style={S.cajWrap}>
                 <div style={{ textAlign: "center", padding: "36px 16px" }}>
                     <div style={{ fontSize: 44, marginBottom: 10 }}>📦</div>
                     <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Turno sin abrir</div>
+
+                    {/* Información de qué se va a abrir */}
+                    <div style={{
+                        padding: 12,
+                        borderRadius: 10,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        marginBottom: 16,
+                        maxWidth: 320,
+                        margin: "0 auto 16px"
+                    }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Vas a abrir:</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 2 }}>
+                            {store?.icon} {store?.name} - {register?.name}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#3b82f6", textTransform: "capitalize" }}>
+                            Turno {shift}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                            📅 {fmtDate(today)}
+                        </div>
+                    </div>
+
                     <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>Contá el efectivo para abrir</div>
                     <button style={{ ...S.btnSubmit, maxWidth: 280, margin: "0 auto" }}
                         onClick={() => openModal("openShift", { storeId, registerId, shift, name })}>
@@ -34,7 +62,7 @@ export default function CajeroPanel({ session, state, getShift, getShiftMovement
         <div style={S.cajWrap}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 12, background: "#fff", border: "1px solid #e2e8f0", marginBottom: 10 }}>
                 <div>
-                    <div style={{ fontWeight: 800, fontSize: 15 }}>{STORES.find(s => s.id === storeId)?.name} — {REGISTERS_PER_STORE.find(r => r.id === registerId)?.name}</div>
+                    <div style={{ fontWeight: 800, fontSize: 15 }}>{store?.icon} {store?.name} — {register?.name}</div>
                     <div style={{ fontSize: 11, color: "#64748b", textTransform: "capitalize" }}>{shift} • Abierto {fmtTime(sd.openedAt)} por {sd.openedBy}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
