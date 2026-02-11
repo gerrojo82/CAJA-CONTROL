@@ -634,7 +634,15 @@ function App() {
             </div>
           )}
           <div style={S.dateBadge}>{fmtDate(new Date())}</div>
-          <button style={S.logoutBtn} onClick={logout}>Salir</button>
+          <button
+            style={S.logoutBtn}
+            onClick={logout}
+            onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
+            onMouseOut={(e) => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            <span>🚪</span>
+            <span>Cerrar sesión</span>
+          </button>
         </div>
       </header>
 
