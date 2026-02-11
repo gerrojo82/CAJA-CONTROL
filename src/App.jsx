@@ -21,7 +21,7 @@ import AdminWithdrawModal from "./modals/AdminWithdrawModal";
 
 // Utils
 import { STORES, REGISTERS_PER_STORE, SHIFTS, DEFAULT_PIN, regLabel } from "./utils/constants";
-import { uid, todayStr, fmt, fmtDate, fmtTime } from "./utils/formatters";
+import { uid, todayStr, fmt, fmtDate, fmtTime, nowISO } from "./utils/formatters";
 import { calcCoinTotal, calcBillTotal, calcCashFlows, calcExpectedCash, getClosingAvailable } from "./utils/helpers";
 import { storage } from "./utils/storage";
 import { supabase, hasSupabase } from "./utils/supabase";
@@ -307,7 +307,7 @@ export default function CajaControl() {
     user: session?.name || "sistema",
     action,
     detail,
-    ts: new Date().toISOString(),
+    ts: nowISO(),
   }), [session]);
 
   const upsertShift = async (shift) => {
@@ -401,7 +401,7 @@ export default function CajaControl() {
       const ns = {
         id: uid(),
         storeId, registerId, shift, date: todayStr(), openedBy: name,
-        openedAt: new Date().toISOString(), openingAmount: total,
+        openedAt: nowISO(), openingAmount: total,
         openingBills: { ...billCount }, openingCoins: { ...coinCount },
         status: "open",
       };
@@ -445,7 +445,7 @@ export default function CajaControl() {
 
       const closing = {
         id: uid(), storeId, registerId, shift, date: todayStr(), closedBy: session?.name || sd.openedBy,
-        closedAt: new Date().toISOString(),
+        closedAt: nowISO(),
         openingAmount: sd.openingAmount, ingresosEfectivo: ingEfvo, egresosEfectivo: egrEfvo,
         ingresosTotal: ingTotal, egresosTotal: egrTotal,
         expectedCash, countedCash: countedTotal, difference: diff, montoRetirado,
@@ -481,12 +481,12 @@ export default function CajaControl() {
       id: uid(), type: "ingreso", amount,
       description: description || `Fondos desde ${regLabel(fc.storeId, fc.registerId)} (${fc.shift})`,
       method: "efectivo", storeId: toStoreId, registerId: toRegId, shift: toShift,
-      date: todayStr(), ts: new Date().toISOString(), registeredBy: session?.name || "admin",
+      date: todayStr(), ts: nowISO(), registeredBy: session?.name || "admin",
       isTransfer: true, fromClosingId,
     };
     const transfer = {
       id: uid(), fromClosingId, fromStore: fc.storeId, fromRegister: fc.registerId, fromShift: fc.shift, fromDate: fc.date,
-      toStore: toStoreId, toRegister: toRegId, toShift, toDate: todayStr(), amount, executedBy: session?.name || "admin", ts: new Date().toISOString(),
+      toStore: toStoreId, toRegister: toRegId, toShift, toDate: todayStr(), amount, executedBy: session?.name || "admin", ts: nowISO(),
     };
     const entry = addLog("TRANSFERENCIA", `${fmt(amount)} de ${regLabel(fc.storeId, fc.registerId)} → ${regLabel(toStoreId, toRegId)}`);
     const auditLog = [...state.auditLog, entry];
@@ -509,7 +509,7 @@ export default function CajaControl() {
     if (amount > available) { showToast("Mayor al disponible", "error"); return; }
 
     const withdrawal = {
-      id: uid(), amount, note: note || "", ts: new Date().toISOString(),
+      id: uid(), amount, note: note || "", ts: nowISO(),
       by: session?.name || "admin",
     };
 
@@ -533,7 +533,7 @@ export default function CajaControl() {
 
   const addMovement = async (mov) => {
     try {
-      const m = { ...mov, id: uid(), date: todayStr(), ts: new Date().toISOString(), registeredBy: session?.name || "admin" };
+      const m = { ...mov, id: uid(), date: todayStr(), ts: nowISO(), registeredBy: session?.name || "admin" };
       const entry = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
       const auditLog = [...state.auditLog, entry];
       await insertMovement(m);

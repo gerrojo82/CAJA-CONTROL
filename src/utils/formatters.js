@@ -35,3 +35,10 @@ export const todayStr = () => {
 
 export const calcBillTotal = (bills) => DENOMINATIONS.reduce((t, d) => t + (bills[d] || 0) * d, 0);
 export const calcCoinTotal = (coins) => COIN_DENOMS.reduce((t, d) => t + (coins[d] || 0) * d, 0);
+
+// Genera timestamp ISO con zona horaria de Argentina
+export const nowISO = () => {
+	const d = new Date();
+	const argDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+	return argDate.toISOString();
+};
