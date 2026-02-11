@@ -294,12 +294,14 @@ export default function CajaControl() {
 
   const upsertShift = async (shift) => {
     if (!hasSupabase) return;
-    await supabase.from("shifts").upsert(toDbShift(shift));
+    await supabase.from("shifts").upsert(toDbShift(shift), { onConflict: "store_id,register_id,date,shift" });
   };
 
   const insertClosing = async (closing) => {
     if (!hasSupabase) return;
-    await supabase.from("closings").insert(toDbClosing(closing));
+    const { error } = await supabase.from("closings").insert(toDbClosing(closing));
+    if (error && error.code === "23505") return;
+    if (error) throw error;
   };
 
   const upsertClosing = async (closing) => {
@@ -309,12 +311,16 @@ export default function CajaControl() {
 
   const insertMovement = async (movement) => {
     if (!hasSupabase) return;
-    await supabase.from("movements").insert(toDbMovement(movement));
+    const { error } = await supabase.from("movements").insert(toDbMovement(movement));
+    if (error && error.code === "23505") return;
+    if (error) throw error;
   };
 
   const insertTransfer = async (transfer) => {
     if (!hasSupabase) return;
-    await supabase.from("transfers").insert(toDbTransfer(transfer));
+    const { error } = await supabase.from("transfers").insert(toDbTransfer(transfer));
+    if (error && error.code === "23505") return;
+    if (error) throw error;
   };
 
   const insertAudit = async (entry) => {
@@ -344,6 +350,9 @@ export default function CajaControl() {
     const { storeId, registerId, shift, name } = modalData;
     const total = calcBillTotal(billCount) + calcCoinTotal(coinCount);
     const key = shiftKey(storeId, registerId, todayStr(), shift);
+    const existing = state.shifts[key];
+    if (existing?.status === "open") { showToast("Turno ya abierto", "error"); return; }
+    if (existing?.status === "closed") { showToast("Turno ya cerrado", "error"); return; }
     const ns = {
       id: uid(),
       storeId, registerId, shift, date: todayStr(), openedBy: name,

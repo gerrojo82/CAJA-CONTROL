@@ -6,6 +6,7 @@ import { S } from "../styles/styles";
 export default function MovementModal({ type, data, onConfirm, onClose }) {
     const [form, setForm] = useState({ amount: "", description: "", method: "efectivo", category: "" });
     const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
     const isEgreso = type === "egreso";
     const canEditDetails = !isEgreso || !!form.category;
     return (
@@ -34,13 +35,18 @@ export default function MovementModal({ type, data, onConfirm, onClose }) {
                 ))}
             </div>
             {error && <div style={S.errorMsg}>{error}</div>}
-            <button style={{ ...S.btnSubmit, background: isEgreso ? "#dc2626" : "#0f172a" }} disabled={!form.amount || !form.description || (isEgreso && !form.category)}
-                onClick={() => {
+            <button style={{ ...S.btnSubmit, background: isEgreso ? "#dc2626" : "#0f172a", opacity: submitting ? 0.7 : 1 }} disabled={submitting || !form.amount || !form.description || (isEgreso && !form.category)}
+                onClick={async () => {
                     const a = Number(form.amount);
                     if (!a || a <= 0) { setError("Monto inválido"); return; }
                     if (!form.description.trim()) { setError("Descripción requerida"); return; }
                     if (isEgreso && !form.category) { setError("Seleccioná un tipo"); return; }
-                    onConfirm({ ...form, amount: a, type, storeId: data.storeId, registerId: data.registerId, shift: data.shift });
+                    setSubmitting(true);
+                    try {
+                        await onConfirm({ ...form, amount: a, type, storeId: data.storeId, registerId: data.registerId, shift: data.shift });
+                    } finally {
+                        setSubmitting(false);
+                    }
                 }}>Registrar</button>
         </Modal>
     );

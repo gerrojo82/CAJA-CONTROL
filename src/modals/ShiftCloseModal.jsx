@@ -8,6 +8,7 @@ import { S } from "../styles/styles";
 export default function ShiftCloseModal({ data, shiftData, moves, onConfirm, onClose }) {
     const [bills, setBills] = useState({});
     const [coins, setCoins] = useState({});
+    const [submitting, setSubmitting] = useState(false);
     const total = calcBillTotal(bills) + calcCoinTotal(coins);
     const expected = shiftData ? calcExpectedCash(shiftData.openingAmount, moves) : 0;
     const { ingEfvo, egrEfvo } = calcCashFlows(moves);
@@ -31,7 +32,9 @@ export default function ShiftCloseModal({ data, shiftData, moves, onConfirm, onC
                     <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4, opacity: 0.8 }}>Retiro: {fmt(Math.max(0, total - (shiftData?.openingAmount || 0)))}</div>
                 </div>
             )}
-            <button style={{ ...S.btnSubmit, background: diff < 0 ? "#dc2626" : "#0f172a" }} onClick={() => onConfirm(bills, coins)} disabled={total === 0}>Confirmar Cierre</button>
+            <button style={{ ...S.btnSubmit, background: diff < 0 ? "#dc2626" : "#0f172a", opacity: submitting ? 0.7 : 1 }}
+                onClick={async () => { setSubmitting(true); try { await onConfirm(bills, coins); } finally { setSubmitting(false); } }}
+                disabled={submitting || total === 0}>Confirmar Cierre</button>
         </Modal>
     );
 }
