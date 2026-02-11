@@ -12,11 +12,17 @@
 - ✅ **Datos corregidos** en todas las tablas
 
 ### Datos en Supabase (corregidos)
-- ✅ **12 turnos** - Fechas y horas ajustadas a GMT-3
-- ✅ **7 cierres** - Timestamps corregidos
-- ✅ **20 movimientos** - Fechas corregidas
-- ✅ **43 registros de auditoría** - Todos ajustados
+- ✅ **9 turnos** - Fechas y horas ajustadas a GMT-3 (3 duplicados eliminados)
+- ✅ **7 cierres** - Timestamps y fechas corregidos
+- ✅ **20 movimientos** - Timestamps y fechas corregidos
+- ✅ **43 registros de auditoría** - Timestamps ajustados
 - ✅ **0 transferencias** - Tabla lista para usar
+
+### Duplicados eliminados
+- ✅ **3 turnos duplicados** removidos de la base de datos
+  - `urquiza/caja1/tarde` del 09/02 (turno más nuevo eliminado)
+  - `callao/caja1/tarde` del 09/02 (turno más nuevo eliminado)
+  - `urquiza/caja2/tarde` del 10/02 (turno más nuevo eliminado)
 
 ---
 
