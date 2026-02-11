@@ -1,11 +1,17 @@
 import { STORES, REGISTERS_PER_STORE, SHIFTS } from "../../utils/constants";
 import { todayStr } from "../../utils/formatters";
 import { S } from "../../styles/styles";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function PickShift({ selStore, selReg, setSelShift, setScreen, getShift }) {
+    const { signOut } = useAuth();
     const storeName = STORES.find(s => s.id === selStore)?.name;
     const regName = REGISTERS_PER_STORE.find(r => r.id === selReg)?.name;
     const font = <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />;
+
+    const handleLogout = async () => {
+        await signOut();
+    };
 
     return (
         <div style={S.onboardBg}>{font}
@@ -31,6 +37,18 @@ export default function PickShift({ selStore, selReg, setSelShift, setScreen, ge
                         );
                     })}
                 </div>
+                <button
+                    style={{
+                        ...S.adminLink,
+                        marginTop: 16,
+                        background: "rgba(220, 38, 38, 0.15)",
+                        borderColor: "rgba(220, 38, 38, 0.3)",
+                        color: "#fca5a5"
+                    }}
+                    onClick={handleLogout}
+                >
+                    🚪 Cerrar sesión
+                </button>
             </div>
         </div>
     );

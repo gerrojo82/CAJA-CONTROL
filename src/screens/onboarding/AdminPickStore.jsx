@@ -1,8 +1,14 @@
 import { STORES } from "../../utils/constants";
 import { S } from "../../styles/styles";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function AdminPickStore({ setAdminStore, setScreen, setSession }) {
+    const { signOut } = useAuth();
     const font = <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />;
+
+    const handleLogout = async () => {
+        await signOut();
+    };
 
     return (
         <div style={S.onboardBg}>{font}
@@ -24,6 +30,18 @@ export default function AdminPickStore({ setAdminStore, setScreen, setSession })
                         <span style={{ fontSize: 18, fontWeight: 800 }}>Todas las tiendas</span>
                     </button>
                 </div>
+                <button
+                    style={{
+                        ...S.adminLink,
+                        marginTop: 16,
+                        background: "rgba(220, 38, 38, 0.15)",
+                        borderColor: "rgba(220, 38, 38, 0.3)",
+                        color: "#fca5a5"
+                    }}
+                    onClick={handleLogout}
+                >
+                    🚪 Cerrar sesión
+                </button>
             </div>
         </div>
     );

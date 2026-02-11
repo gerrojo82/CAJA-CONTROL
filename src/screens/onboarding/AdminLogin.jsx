@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { S } from "../../styles/styles";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function AdminLogin({ checkPin, setScreen, showToast }) {
+    const { signOut } = useAuth();
     const [adminPin, setAdminPin] = useState("");
     const font = <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />;
+
+    const handleLogout = async () => {
+        await signOut();
+    };
 
     const pressKey = (k) => {
         if (k === "del") setAdminPin(p => p.slice(0, -1));
@@ -48,6 +54,18 @@ export default function AdminLogin({ checkPin, setScreen, showToast }) {
                         </button>
                     ))}
                 </div>
+                <button
+                    style={{
+                        ...S.adminLink,
+                        marginTop: 24,
+                        background: "rgba(220, 38, 38, 0.15)",
+                        borderColor: "rgba(220, 38, 38, 0.3)",
+                        color: "#fca5a5"
+                    }}
+                    onClick={handleLogout}
+                >
+                    🚪 Cerrar sesión
+                </button>
             </div>
         </div>
     );
