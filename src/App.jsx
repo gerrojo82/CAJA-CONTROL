@@ -251,6 +251,13 @@ export default function CajaControl() {
             supabase.from("audit_log").select("*").order("ts", { ascending: true }),
           ]);
 
+          // Validar errores de Supabase
+          if (shiftsRes.error) console.error("Error cargando shifts:", shiftsRes.error);
+          if (closingsRes.error) console.error("Error cargando closings:", closingsRes.error);
+          if (movesRes.error) console.error("Error cargando movements:", movesRes.error);
+          if (transfersRes.error) console.error("Error cargando transfers:", transfersRes.error);
+          if (auditRes.error) console.error("Error cargando audit_log:", auditRes.error);
+
           const shiftsMap = {};
           (shiftsRes.data || []).forEach(r => {
             const s = fromDbShift(r);
@@ -270,7 +277,10 @@ export default function CajaControl() {
           const res = await storage.get("cajacontrol_v5");
           if (res?.value) setState(JSON.parse(res.value));
         }
-      } catch { }
+      } catch (err) {
+        console.error("Error crítico al cargar datos:", err);
+        // Continuar con estado inicial en caso de error
+      }
       setLoaded(true);
     })();
   }, []);
@@ -278,9 +288,17 @@ export default function CajaControl() {
   const save = useCallback(async (ns) => {
     setState(ns);
     if (!hasSupabase) {
-      try { await storage.set("cajacontrol_v5", JSON.stringify(ns)); } catch { }
+      try {
+        await storage.set("cajacontrol_v5", JSON.stringify(ns));
+      } catch (err) {
+        console.error("Error guardando en localStorage:", err);
+      }
     } else if (ns.adminPin !== state.adminPin) {
-      try { await storage.set("admin_pin", ns.adminPin); } catch { }
+      try {
+        await storage.set("admin_pin", ns.adminPin);
+      } catch (err) {
+        console.error("Error guardando PIN:", err);
+      }
     }
   }, [state.adminPin]);
 
@@ -294,7 +312,16 @@ export default function CajaControl() {
 
   const upsertShift = async (shift) => {
     if (!hasSupabase) return;
-    await supabase.from("shifts").upsert(toDbShift(shift), { onConflict: "store_id,register_id,date,shift" });
+    try {
+      const { error } = await supabase.from("shifts").upsert(toDbShift(shift), { onConflict: "store_id,register_id,date,shift" });
+      if (error) {
+        console.error("Error al guardar turno:", error);
+        throw error;
+      }
+    } catch (err) {
+      console.error("Error crítico en upsertShift:", err);
+      throw err;
+    }
   };
 
   const insertClosing = async (closing) => {
@@ -306,7 +333,16 @@ export default function CajaControl() {
 
   const upsertClosing = async (closing) => {
     if (!hasSupabase) return;
-    await supabase.from("closings").upsert(toDbClosing(closing));
+    try {
+      const { error } = await supabase.from("closings").upsert(toDbClosing(closing));
+      if (error) {
+        console.error("Error al guardar cierre:", error);
+        throw error;
+      }
+    } catch (err) {
+      console.error("Error crítico en upsertClosing:", err);
+      throw err;
+    }
   };
 
   const insertMovement = async (movement) => {
@@ -325,7 +361,15 @@ export default function CajaControl() {
 
   const insertAudit = async (entry) => {
     if (!hasSupabase) return;
-    await supabase.from("audit_log").insert(toDbAudit(entry));
+    try {
+      const { error } = await supabase.from("audit_log").insert(toDbAudit(entry));
+      if (error && error.code !== "23505") {
+        console.error("Error al guardar log de auditoría:", error);
+      }
+    } catch (err) {
+      console.error("Error crítico en insertAudit:", err);
+      // No lanzar error para no bloquear la operación principal
+    }
   };
 
   const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
@@ -347,65 +391,83 @@ export default function CajaControl() {
 
   // ── OPERATIONS ────────────────────────────────────────────────
   const openShift = async (billCount, coinCount) => {
-    const { storeId, registerId, shift, name } = modalData;
-    const total = calcBillTotal(billCount) + calcCoinTotal(coinCount);
-    const key = shiftKey(storeId, registerId, todayStr(), shift);
-    const existing = state.shifts[key];
-    if (existing?.status === "open") { showToast("Turno ya abierto", "error"); return; }
-    if (existing?.status === "closed") { showToast("Turno ya cerrado", "error"); return; }
-    const ns = {
-      id: uid(),
-      storeId, registerId, shift, date: todayStr(), openedBy: name,
-      openedAt: new Date().toISOString(), openingAmount: total,
-      openingBills: { ...billCount }, openingCoins: { ...coinCount },
-      status: "open",
-    };
-    const entry = addLog("APERTURA", `${regLabel(storeId, registerId)} ${shift} con ${fmt(total)} por ${name}`);
-    const auditLog = [...state.auditLog, entry];
-    await upsertShift(ns);
-    await insertAudit(entry);
-    save({ ...state, shifts: { ...state.shifts, [key]: ns }, auditLog });
-    closeModal();
-    setSession({ storeId, registerId, shift, name, role: "cajero" });
-    setScreen("cajero");
-    showToast(`Turno abierto con ${fmt(total)}`);
+    try {
+      const { storeId, registerId, shift, name } = modalData;
+      const total = calcBillTotal(billCount) + calcCoinTotal(coinCount);
+      const key = shiftKey(storeId, registerId, todayStr(), shift);
+      const existing = state.shifts[key];
+      if (existing?.status === "open") { showToast("Turno ya abierto", "error"); return; }
+      if (existing?.status === "closed") { showToast("Turno ya cerrado", "error"); return; }
+      const ns = {
+        id: uid(),
+        storeId, registerId, shift, date: todayStr(), openedBy: name,
+        openedAt: new Date().toISOString(), openingAmount: total,
+        openingBills: { ...billCount }, openingCoins: { ...coinCount },
+        status: "open",
+      };
+      const entry = addLog("APERTURA", `${regLabel(storeId, registerId)} ${shift} con ${fmt(total)} por ${name}`);
+      const auditLog = [...state.auditLog, entry];
+      await upsertShift(ns);
+      await insertAudit(entry);
+      save({ ...state, shifts: { ...state.shifts, [key]: ns }, auditLog });
+      closeModal();
+      setSession({ storeId, registerId, shift, name, role: "cajero" });
+      setScreen("cajero");
+      showToast(`Turno abierto con ${fmt(total)}`);
+    } catch (err) {
+      console.error("Error al abrir turno:", err);
+      showToast("Error al abrir turno. Intenta de nuevo.", "error");
+    }
   };
 
   const closeShift = async (billCount, coinCount) => {
-    const { storeId, registerId, shift } = modalData;
-    const key = shiftKey(storeId, registerId, todayStr(), shift);
-    const sd = state.shifts[key];
-    if (!sd) return;
+    try {
+      const { storeId, registerId, shift } = modalData;
+      const key = shiftKey(storeId, registerId, todayStr(), shift);
+      const sd = state.shifts[key];
+      if (!sd) {
+        showToast("Turno no encontrado", "error");
+        return;
+      }
 
-    const countedTotal = calcBillTotal(billCount) + calcCoinTotal(coinCount);
-    const moves = getShiftMovements(storeId, registerId, todayStr(), shift);
-    const { ingEfvo, egrEfvo, ingTotal, egrTotal } = calcCashFlows(moves);
+      if (sd.status === "closed") {
+        showToast("Este turno ya fue cerrado", "error");
+        return;
+      }
 
-    const expectedCash = sd.openingAmount + ingEfvo - egrEfvo;
-    const diff = countedTotal - expectedCash;
-    const montoRetirado = Math.max(0, countedTotal - sd.openingAmount);
+      const countedTotal = calcBillTotal(billCount) + calcCoinTotal(coinCount);
+      const moves = getShiftMovements(storeId, registerId, todayStr(), shift);
+      const { ingEfvo, egrEfvo, ingTotal, egrTotal } = calcCashFlows(moves);
 
-    const closing = {
-      id: uid(), storeId, registerId, shift, date: todayStr(), closedBy: session?.name || sd.openedBy,
-      closedAt: new Date().toISOString(),
-      openingAmount: sd.openingAmount, ingresosEfectivo: ingEfvo, egresosEfectivo: egrEfvo,
-      ingresosTotal: ingTotal, egresosTotal: egrTotal,
-      expectedCash, countedCash: countedTotal, difference: diff, montoRetirado,
-      transferredOut: 0, adminWithdrawn: 0, adminWithdrawals: [],
-      closingBills: { ...billCount }, closingCoins: { ...coinCount }, movements: moves,
-    };
+      const expectedCash = sd.openingAmount + ingEfvo - egrEfvo;
+      const diff = countedTotal - expectedCash;
+      const montoRetirado = Math.max(0, countedTotal - sd.openingAmount);
 
-    const updatedShift = { ...sd, id: sd.id || uid(), status: "closed", closedAt: closing.closedAt, closedBy: closing.closedBy, closingAmount: countedTotal, difference: diff, montoRetirado };
-    const entry = addLog("CIERRE", `${regLabel(storeId, registerId)} ${shift}: esperado ${fmt(expectedCash)} contado ${fmt(countedTotal)} dif ${fmt(diff)}`);
-    const auditLog = [...state.auditLog, entry];
+      const closing = {
+        id: uid(), storeId, registerId, shift, date: todayStr(), closedBy: session?.name || sd.openedBy,
+        closedAt: new Date().toISOString(),
+        openingAmount: sd.openingAmount, ingresosEfectivo: ingEfvo, egresosEfectivo: egrEfvo,
+        ingresosTotal: ingTotal, egresosTotal: egrTotal,
+        expectedCash, countedCash: countedTotal, difference: diff, montoRetirado,
+        transferredOut: 0, adminWithdrawn: 0, adminWithdrawals: [],
+        closingBills: { ...billCount }, closingCoins: { ...coinCount }, movements: moves,
+      };
 
-    await upsertShift(updatedShift);
-    await insertClosing(closing);
-    await insertAudit(entry);
-    save({ ...state, shifts: { ...state.shifts, [key]: updatedShift }, closings: [...state.closings, closing], auditLog });
-    closeModal();
-    if (!session || session?.role !== "admin") logout();
-    showToast(diff === 0 ? `✓ Cierre perfecto • Retirado: ${fmt(montoRetirado)}` : `Dif: ${fmt(diff)} • Retirado: ${fmt(montoRetirado)}`, diff === 0 ? "success" : "error");
+      const updatedShift = { ...sd, id: sd.id || uid(), status: "closed", closedAt: closing.closedAt, closedBy: closing.closedBy, closingAmount: countedTotal, difference: diff, montoRetirado };
+      const entry = addLog("CIERRE", `${regLabel(storeId, registerId)} ${shift}: esperado ${fmt(expectedCash)} contado ${fmt(countedTotal)} dif ${fmt(diff)}`);
+      const auditLog = [...state.auditLog, entry];
+
+      await upsertShift(updatedShift);
+      await insertClosing(closing);
+      await insertAudit(entry);
+      save({ ...state, shifts: { ...state.shifts, [key]: updatedShift }, closings: [...state.closings, closing], auditLog });
+      closeModal();
+      if (!session || session?.role !== "admin") logout();
+      showToast(diff === 0 ? `✓ Cierre perfecto • Retirado: ${fmt(montoRetirado)}` : `Dif: ${fmt(diff)} • Retirado: ${fmt(montoRetirado)}`, diff === 0 ? "success" : "error");
+    } catch (err) {
+      console.error("Error al cerrar turno:", err);
+      showToast("Error al cerrar turno. Intenta de nuevo.", "error");
+    }
   };
 
   const transferFunds = async (fromClosingId, toStoreId, toRegId, toShift, amount, description) => {
@@ -470,14 +532,19 @@ export default function CajaControl() {
   };
 
   const addMovement = async (mov) => {
-    const m = { ...mov, id: uid(), date: todayStr(), ts: new Date().toISOString(), registeredBy: session?.name || "admin" };
-    const entry = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
-    const auditLog = [...state.auditLog, entry];
-    await insertMovement(m);
-    await insertAudit(entry);
-    save({ ...state, movements: [...state.movements, m], auditLog });
-    closeModal();
-    showToast(`${mov.type === "ingreso" ? "Ingreso" : "Egreso"} registrado`);
+    try {
+      const m = { ...mov, id: uid(), date: todayStr(), ts: new Date().toISOString(), registeredBy: session?.name || "admin" };
+      const entry = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
+      const auditLog = [...state.auditLog, entry];
+      await insertMovement(m);
+      await insertAudit(entry);
+      save({ ...state, movements: [...state.movements, m], auditLog });
+      closeModal();
+      showToast(`${mov.type === "ingreso" ? "Ingreso" : "Egreso"} registrado`);
+    } catch (err) {
+      console.error("Error al registrar movimiento:", err);
+      showToast("Error al registrar movimiento. Intenta de nuevo.", "error");
+    }
   };
 
   const resetData = async () => {

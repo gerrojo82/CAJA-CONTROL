@@ -4,7 +4,10 @@ export { regLabel } from "./constants";
 export const fmt = (n) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n || 0);
 const toDate = (d) => {
 	if (!d) return null;
-	if (typeof d === "string" && d.length === 10) return new Date(`${d}T00:00:00`);
+	// Especificar zona horaria de Argentina para consistencia
+	if (typeof d === "string" && d.length === 10) {
+		return new Date(`${d}T00:00:00-03:00`);
+	}
 	return new Date(d);
 };
 
@@ -21,10 +24,12 @@ export const fmtTime = (d) => {
 };
 export const uid = () => (crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2, 10));
 export const todayStr = () => {
+	// Usar zona horaria de Argentina (GMT-3) para evitar desfases
 	const d = new Date();
-	const yyyy = d.getFullYear();
-	const mm = String(d.getMonth() + 1).padStart(2, "0");
-	const dd = String(d.getDate()).padStart(2, "0");
+	const argDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+	const yyyy = argDate.getFullYear();
+	const mm = String(argDate.getMonth() + 1).padStart(2, "0");
+	const dd = String(argDate.getDate()).padStart(2, "0");
 	return `${yyyy}-${mm}-${dd}`;
 };
 
