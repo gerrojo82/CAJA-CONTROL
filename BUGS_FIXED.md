@@ -10,17 +10,23 @@
 
 **Problema:**
 - La función `todayStr()` usaba `new Date()` sin especificar zona horaria
-- Causaba desfases de fecha cuando el servidor estaba en diferente zona horaria
-- Turnos podían registrarse en el día incorrecto cerca de medianoche
+- Los timestamps usaban `new Date().toISOString()` que genera hora UTC
+- A las 22:00 en Argentina (GMT-3), UTC ya es el día siguiente (01:00)
+- Causaba que turnos cerrados a la noche aparecieran con fecha del día siguiente
+- Ejemplo: Cierre el 10/02 a las 22:00 → aparecía como 11/02 en Supabase
 
 **Solución:**
 - Implementada zona horaria de Argentina (GMT-3) en `todayStr()`
 - Agregada zona horaria `-03:00` en la conversión de fechas string
-- Archivo: `src/utils/formatters.js:23-32`
+- Creada función `nowISO()` que genera timestamps en hora de Argentina
+- Reemplazados todos los `new Date().toISOString()` por `nowISO()`
+- Archivos: `src/utils/formatters.js:23-43`, `src/App.jsx` (7 ocurrencias)
 
 **Impacto:**
 - ✅ Fechas consistentes independiente de zona horaria del navegador
 - ✅ Turnos siempre se registran en el día correcto
+- ✅ Timestamps en Supabase ahora muestran la hora correcta de Argentina
+- ✅ No más desfases de +1 día en cierres nocturnos
 
 ---
 
