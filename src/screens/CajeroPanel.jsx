@@ -126,7 +126,7 @@ export default function CajeroPanel({ session, state, getShift, getShiftMovement
                                     {m.category && <span style={{ ...S.tTag, background: "#fee2e2", color: "#dc2626" }}>{m.category}</span>}
                                     {m.description}
                                 </div>
-                                <div style={{ fontSize: 10, color: "#94a3b8" }}>{fmtTime(m.ts)} • {m.method}</div>
+                                <div style={{ fontSize: 10, color: "#94a3b8" }}>{fmtDate(m.date)} {fmtTime(m.ts)} • {m.method}</div>
                             </div>
                             <div style={{ fontWeight: 800, fontSize: 14, fontFamily: "'JetBrains Mono', monospace", color: m.type === "ingreso" ? "#16a34a" : "#dc2626", flexShrink: 0 }}>
                                 {m.type === "ingreso" ? "+" : "−"}{fmt(m.amount)}

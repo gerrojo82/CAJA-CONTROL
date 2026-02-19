@@ -405,7 +405,10 @@ export default function AdminPanel({ state, adminTab, setAdminTab, filterDate, s
                         {periodMoves.length === 0 ? <div style={S.empty}>Sin movimientos</div> : <div style={S.card}>
                             {[...periodMoves].reverse().map(m => (
                                 <div key={m.id} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13, alignItems: "center" }}>
-                                    <span style={{ width: 48, color: "#94a3b8", fontSize: 11 }}>{fmtTime(m.ts)}</span>
+                                    <div style={{ width: 86, color: "#94a3b8", fontSize: 11, lineHeight: 1.1 }}>
+                                        <div>{fmtDate(m.date)}</div>
+                                        <div>{fmtTime(m.ts)}</div>
+                                    </div>
                                     <span style={{ width: 80, fontSize: 11 }}>{regLabel(m.storeId, m.registerId)}</span>
                                     <span style={{ flex: 1, fontWeight: 500 }}>
                                         {m.isTransfer && <span style={S.tTag}>TRANSF</span>}
@@ -443,7 +446,10 @@ export default function AdminPanel({ state, adminTab, setAdminTab, filterDate, s
                             <div style={S.card}>
                                 {[...filteredEgresos].reverse().map(m => (
                                     <div key={m.id} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13, alignItems: "center" }}>
-                                        <span style={{ width: 48, color: "#94a3b8", fontSize: 11 }}>{fmtTime(m.ts)}</span>
+                                        <div style={{ width: 86, color: "#94a3b8", fontSize: 11, lineHeight: 1.1 }}>
+                                            <div>{fmtDate(m.date)}</div>
+                                            <div>{fmtTime(m.ts)}</div>
+                                        </div>
                                         <span style={{ width: 80, fontSize: 11 }}>{regLabel(m.storeId, m.registerId)}</span>
                                         <span style={{ flex: 1, fontWeight: 500 }}>
                                             {m.category && <span style={{ ...S.tTag, background: "#fee2e2", color: "#dc2626" }}>{m.category}</span>}
@@ -479,7 +485,7 @@ export default function AdminPanel({ state, adminTab, setAdminTab, filterDate, s
                                 </div>
                                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ fontSize: 18, fontWeight: 800, color: "#7c3aed", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(t.amount)}</span>
-                                    <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmtTime(t.ts)} • {t.executedBy}</span>
+                                    <span style={{ fontSize: 12, color: "#94a3b8" }}>{fmtDate(t.toDate || t.ts)} {fmtTime(t.ts)} • {t.executedBy}</span>
                                 </div>
                             </div>
                         ))}

@@ -1,11 +1,12 @@
 import Modal from "../components/Modal";
-import { fmt, fmtTime, regLabel } from "../utils/formatters";
+import { fmt, fmtDate, fmtTime, regLabel } from "../utils/formatters";
 import { getClosingAvailable } from "../utils/helpers";
 import { printClosing } from "../utils/printClosing";
 import { S } from "../styles/styles";
 
-export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
+export default function ClosingDetailModal({ data: c, movements, onClose, onWithdraw, onAddMovement }) {
     const available = getClosingAvailable(c);
+    const allMoves = movements && movements.length > 0 ? movements : (c.movements || []);
     return (
         <Modal title="Detalle Cierre" onClose={onClose} wide>
             <div style={{ padding: 8, borderRadius: 6, background: "#f0f9ff", border: "1px solid #bae6fd", marginBottom: 12, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -14,7 +15,7 @@ export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px", fontSize: 13 }}>
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Caja</span><br />{regLabel(c.storeId, c.registerId)}</div>
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Turno</span><br /><span style={{ textTransform: "capitalize" }}>{c.shift}</span></div>
-                <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Cerrado por</span><br />{c.closedBy} — {fmtTime(c.closedAt)}</div>
+                <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Cerrado por</span><br />{c.closedBy} — {fmtDate(c.closedAt)} {fmtTime(c.closedAt)}</div>
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Fondo</span><br />{fmt(c.openingAmount)}</div>
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Esperado</span><br /><strong>{fmt(c.expectedCash)}</strong></div>
                 <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Contado</span><br /><strong>{fmt(c.countedCash)}</strong></div>
@@ -39,6 +40,16 @@ export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
                     🖨️ Imprimir
                 </button>
             </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button
+                    style={{ flex: 1, padding: 10, borderRadius: 8, background: "#0f172a", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                    onClick={() => onAddMovement?.("ingreso", c)}
+                >+ Agregar ingreso</button>
+                <button
+                    style={{ flex: 1, padding: 10, borderRadius: 8, background: "#dc2626", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                    onClick={() => onAddMovement?.("egreso", c)}
+                >− Agregar egreso</button>
+            </div>
             {available <= 0 && <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8", textAlign: "center" }}>Sin disponible para retirar</div>}
 
             {c.adminWithdrawals?.length > 0 && <>
@@ -47,18 +58,19 @@ export default function ClosingDetailModal({ data: c, onClose, onWithdraw }) {
                     <div key={w.id} style={{ display: "flex", gap: 8, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>
                         <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", minWidth: 80 }}>{fmt(w.amount)}</span>
                         <span style={{ flex: 1 }}>{w.note || "(sin nota)"}</span>
-                        <span style={{ color: "#94a3b8" }}>{fmtTime(w.ts)} • {w.by}</span>
+                        <span style={{ color: "#94a3b8" }}>{fmtDate(w.ts)} {fmtTime(w.ts)} • {w.by}</span>
                     </div>
                 ))}
             </>}
-            {c.movements?.length > 0 && <>
-                <div style={{ fontSize: 14, fontWeight: 800, margin: "14px 0 6px" }}>Movimientos ({c.movements.length})</div>
-                {c.movements.map(m => (
+            {allMoves.length > 0 && <>
+                <div style={{ fontSize: 14, fontWeight: 800, margin: "14px 0 6px" }}>Movimientos ({allMoves.length})</div>
+                {allMoves.map(m => (
                     <div key={m.id} style={{ display: "flex", gap: 8, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>
                         <span style={{ color: m.type === "ingreso" ? "#16a34a" : "#dc2626", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", minWidth: 80 }}>
                             {m.type === "ingreso" ? "+" : "−"}{fmt(m.amount)}
                         </span>
                         <span style={{ flex: 1 }}>{m.isTransfer && <span style={S.tTag}>FONDOS</span>}{m.description}</span>
+                        <span style={{ color: "#94a3b8" }}>{fmtDate(m.date)} {fmtTime(m.ts)}</span>
                     </div>
                 ))}
             </>}

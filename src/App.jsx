@@ -540,7 +540,8 @@ function App() {
 
   const addMovement = async (mov) => {
     try {
-      const m = { ...mov, id: uid(), date: todayStr(), ts: nowISO(), registeredBy: session?.name || "admin" };
+      const movementDate = mov.date || todayStr();
+      const m = { ...mov, id: uid(), date: movementDate, ts: nowISO(), registeredBy: session?.name || "admin" };
       const entry = addLog("MOVIMIENTO", `${mov.type === "ingreso" ? "+" : "−"}${fmt(mov.amount)} ${regLabel(mov.storeId, mov.registerId)} (${mov.shift})`);
       const auditLog = [...state.auditLog, entry];
       await insertMovement(m);
@@ -695,8 +696,13 @@ function App() {
       {modal === "closingDetail" && (
         <ClosingDetailModal
           data={modalData}
+          movements={getShiftMovements(modalData.storeId, modalData.registerId, modalData.date, modalData.shift)}
           onClose={closeModal}
           onWithdraw={() => { closeModal(); openModal("adminWithdraw", modalData); }}
+          onAddMovement={(type, closing) => {
+            closeModal();
+            openModal(type, { storeId: closing.storeId, registerId: closing.registerId, shift: closing.shift, date: closing.date });
+          }}
         />
       )}
       {modal === "adminWithdraw" && (

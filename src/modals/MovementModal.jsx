@@ -43,7 +43,7 @@ export default function MovementModal({ type, data, onConfirm, onClose }) {
                     if (isEgreso && !form.category) { setError("Seleccioná un tipo"); return; }
                     setSubmitting(true);
                     try {
-                        await onConfirm({ ...form, amount: a, type, storeId: data.storeId, registerId: data.registerId, shift: data.shift });
+                        await onConfirm({ ...form, amount: a, type, storeId: data.storeId, registerId: data.registerId, shift: data.shift, date: data?.date });
                     } finally {
                         setSubmitting(false);
                     }
